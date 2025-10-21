@@ -1,110 +1,188 @@
-#include <behaviors/num_word.dtsi>
+//
+//                                                        ▀▀▀▀▀     ▀▀▀▀▀          ▀▀█▀▀
+//                                                        ▄▀▀▀▄  ▄  ▄▀▀▀▄  ▄  ▄▀▀▀▄  █  ▄▀▀▀▄
+//                                                        █   █  █  █   █  █  █   █  █  █   █
+//                                                         ▀▀▀   █   ▀▀▀   █   ▀▀▀   ▀   ▀▀▀
+//                                                               █      ▄▄▄█▄▄▄    █   █
+//                                                               ▀      █  █  █     █▄█
+//                                                             ▀▀▀▀▀    █  █  █      ▀
+//                                                                      ▀  ▀  ▀
+//
+// ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+
+
+#define HOST_OS                    2
+#define ZMK_HELPERS_KEEP_NATIVE    0
+
 #include <behaviors.dtsi>
+#include <behaviors/num_word.dtsi>
 #include <dt-bindings/zmk/keys.h>
-#include <dt-bindings/zmk/pointing.h>
+#include "zmk-helpers/helper.h"
+#include "zmk-helpers/key-labels/totem.h"
 
-#define DEF 0
-#define NAV 1
-#define FN 2
-#define NUM 3
-#define SYS 4
-#define MOUSE 5
-#define COLEMAK_DH 5
-#define XXX &none
-#define ___ &trans
-#define QUICK_TAP_MS 175
 
-&sk {
-    release-after-ms = <900>;
-    quick-release;
-};
+#define ______ &trans
 
-&sl { ignore-modifiers; };
+#define DEF   0
+#define NAV   1
+#define NUM   2
+#define SYM   3
+#define FUN   4
+#define LH    5
 
-&lt {
+/* Timing constants */
+
+#define HOMEROW_TAP_MS    280
+#define TDANCE_TAP_MS     200
+#define QUICK_TAP_MS      175
+#define PRIOR_IDLE_MS     150
+
+/* Timeless homerow mods */
+// https://github.com/urob/zmk-config/tree/main#timeless-homerow-mods
+
+#define KEYS_L LT0 LT1 LT2 LT3 LT4 LM0 LM1 LM2 LM3 LM4 LB0 LB1 LB2 LB3 LB4 LB5  // left hand
+#define KEYS_R RT0 RT1 RT2 RT3 RT4 RM0 RM1 RM2 RM3 RM4 RB0 RB1 RB2 RB3 RB4 RB5  // right hand
+#define THUMBS LH0 LH1 LH2 RH0 RH1 RH2  // thumbs
+
+ZMK_HOLD_TAP(hml,
     flavor = "balanced";
-    tapping-term-ms = <200>;
+    tapping-term-ms = <HOMEROW_TAP_MS>;
+    require-prior-idle-ms = <PRIOR_IDLE_MS>;
+    hold-trigger-key-positions = <KEYS_R THUMBS>;
+    hold-trigger-on-release;
+    bindings = <&kp>, <&kp>;
+)
+
+ZMK_HOLD_TAP(hmr,
+    flavor = "balanced";
+    tapping-term-ms = <HOMEROW_TAP_MS>;
+    require-prior-idle-ms = <PRIOR_IDLE_MS>;
+    hold-trigger-key-positions = <KEYS_L THUMBS>;
+    hold-trigger-on-release;
+    bindings = <&kp>, < &kp >;
+)
+
+ZMK_HOLD_TAP(qlt,
+    flavor = "balanced";
+    tapping-term-ms = <175>;
+    bindings = <&mo>, <&kp>;
     quick-tap-ms = <QUICK_TAP_MS>;
-};
+    display-name = "Quick Layer-Tap";
+)
 
-&caps_word {
-    continue-list = <UNDERSCORE MINUS BACKSPACE DELETE K_CANCEL LSHFT SQT CARET TILDE GRAVE>;
+// tap: backspace | shift + tap: delete | hold: num layer
+ZMK_MOD_MORPH(bs_del_sym,
+    bindings = <&qlt SYM BSPC>, <&kp DEL>;
+mods = <(MOD_LSFT | MOD_RSFT)>;
+)
 
-    /delete-property/ ignore-modifiers; // Requires PR#1451 (https://github.com/zmkfirmware/zmk/pull/1451) - currently unmantained but still working
-};
+// tap: shift | double-tap: caps word
+ZMK_TAP_DANCE(LS_caps,
+    tapping-term-ms = <TDANCE_TAP_MS>;
+    bindings = <&kp LSHIFT>, <&caps_word>;
+)
+
+// tap: grave accent | shift + tap: acute accent
+ZMK_MOD_MORPH(grave_acute,
+    bindings = <&kp LA(GRAVE)>, <&kp LA(E)>;
+    mods = <(MOD_LSFT | MOD_RSFT)>;
+)
+
+// Tap: num-word | double-tap: sticky num-layer | Hold: num-layer.
+#define SMART_NUM &smart_num NUM 0
+ZMK_HOLD_TAP(smart_num, bindings = <&mo>, <&num_dance>; flavor = "balanced";
+             tapping-term-ms = <TDANCE_TAP_MS>; quick-tap-ms = <QUICK_TAP_MS>;)
+ZMK_TAP_DANCE(num_dance, bindings = <&num_word NUM>, <&sl NUM>;
+              tapping-term-ms = <TDANCE_TAP_MS>;)
+
+ZMK_COMBO(smart_num,  SMART_NUM,     RB0 RB1, NUM)  // smart_num, active on base
+ZMK_COMBO(copy,       &kp LG(C),     LT0 LT1, ALL)  // copy, active on all layers
+ZMK_COMBO(cut,        &kp LG(X),     LT2 LM2, ALL)  // cut, active on all layers
+ZMK_COMBO(paste,      &kp LG(V),     LT1 LM1, ALL)  // paste, active on all layers
+ZMK_COMBO(clipboard,  &kp LA(LG(C)), LT3 LM3, ALL)  // clipboard, active on all layers
+ZMK_COMBO(alfred,     &kp LA(SPACE), RM0 RM1, DEF)  // alfred, active on base
+ZMK_COMBO(vscode_cmd, &kp LS(LG(P)), LM0 LM1, DEF)  // vscode command palette, active on base
+ZMK_COMBO(undo,       &kp LG(Z),     LT0 LM0, DEF LH)  // undo, active on base
+ZMK_COMBO(redo,       &kp LG(LS(Z)), LB0 LM0, DEF LH)  // redo, active on base
+ZMK_COMBO(undo_2,     &kp LG(Z),     RT0 RM0, DEF)  // undo, active on base
+ZMK_COMBO(redo_2,     &kp LG(LS(Z)), RB0 RM0, DEF)  // redo, active on base
+ZMK_COMBO(next_win,   &kp LG(GRAVE), LM1 LB1, DEF LH)  // next window, active on base
+ZMK_COMBO(save,       &kp LG(S), LM3 LB3, DEF LH)  // save, active on base
+
+ZMK_COMBO(accent_grave_acute, &grave_acute, RB1 RM1, DEF)
+
+ZMK_TAP_DANCE(ESC_LH,
+    tapping-term-ms = <TDANCE_TAP_MS>;
+    bindings = <&kp ESC>, <&tog LH>;
+)
 
 &num_word {
-    continue-list = <LPAR RPAR LBKT RBKT LBRC RBRC TAB DOT COMMA SEMI COLON SLASH PLUS MINUS ASTRK EQUAL BACKSPACE DEL>;
-    ignore-modifiers;
+  continue-list = <BACKSPACE DELETE DOT COMMA PLUS MINUS STAR FSLH EQUAL SPACE LT GT DLLR COLON>;
 };
 
-#include "combos.dtsi" // Must be sourced after HRM-combo hack.
-#include "leader.dtsi"
-#include "mouse.dtsi"
 
 / {
-    behaviors {
-        shft_cw: shft_caps_word {
-            compatible = "zmk,behavior-tap-dance";
-            #binding-cells = <0>;
-            bindings = <&sk RSHFT>, <&caps_word>;
-
-            tapping-term-ms = <300>;
-        };
-    };
-
-    macros {
-        ll_mac: ll_mac {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&none &kp E &kp S &kp T &kp E &kp B &kp A &kp N &kp LS(A) &kp P &kp A &kp M &kp A &kp N2 &kp N0 &kp N1 &kp N7 &kp EXCL>;
-            label = "LL_MAC";
-        };
-
-        crunch_mac: crunch_mac {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&none &kp N2 &kp N5 &kp N0 &kp N1 &kp N2 &kp N5 &kp LS(E) &kp S &kp T &kp E &kp B &kp A &kp N &kp CARET>;
-            label = "CRUNCH_MAC";
-        };
-    };
-
     keymap {
         compatible = "zmk,keymap";
 
-        QWERTY {
+        base_layer {
+            display-name = "Base";
             bindings = <
-        &kp Q  &kp W  &kp E   &kp R   &kp T     &kp Y   &kp U   &kp I      &kp O    &kp P
-        &kp A  &kp S  &kp D   &kp F   &kp G     &kp H   &kp J   &kp K      &kp L    &kp SEMI
-&trans  &kp Z  &kp X  &kp C   &kp V   &kp B     &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &trans
-                      &trans  &trans  &trans    &trans  &trans  &trans
+         &kp Q         &kp W        &kp E         &kp R         &kp T              &kp Y          &kp U        &kp I              &kp O        &kp P
+         &hml LCTRL A  &hml LALT S  &hml LSHFT D  &hml LGUI F   &kp G              &kp H          &hmr RGUI J  &hmr RSHFT K       &hmr RALT L  &hmr RCTRL SEMI
+&ESC_LH  &kp Z         &kp X        &kp C         &kp V         &kp B              &kp N          &kp M        &kp COMMA          &kp DOT      &kp SLASH        &kp APOS
+                                    &LS_caps      &qlt NUM TAB  &kp SPACE          &lt NAV ENTER  &bs_del_sym  &qlt FUN RC(GRAVE)
             >;
         };
 
-        ColemakDH {
+        nav_layer {
+            display-name = "Nav";
             bindings = <
-        &trans  &trans  &trans  &trans  &trans    &trans  &trans  &trans  &trans  &trans
-        &trans  &trans  &trans  &trans  &trans    &trans  &trans  &trans  &trans  &trans
-&trans  &trans  &trans  &trans  &trans  &trans    &trans  &trans  &trans  &trans  &trans  &trans
-                        &trans  &trans  &trans    &trans  &trans  &trans
+        ______     ______    ______     ______      ______        &kp HOME      &kp PG_DN     &kp PG_UP   &kp END        ______
+        &kp LCTRL  &kp LALT  &kp LSHFT  &kp LGUI    ______        &kp LEFT      &kp DOWN      &kp UP      &kp RIGHT      ______
+______  ______     ______    ______     ______      ______        &kp LA(LEFT)  &kp LA(DOWN)  &kp LA(UP)  &kp LA(RIGHT)  ______  ______
+                             ______     ______      &kp SPACE     ______        ______        ______
             >;
         };
 
-        Symbols {
+        num_layer {
+            display-name = "Num";
             bindings = <
-        &trans  &trans  &trans  &trans  &trans    &trans  &trans  &trans  &trans  &trans
-        &trans  &trans  &trans  &trans  &trans    &trans  &trans  &trans  &trans  &trans
-&trans  &trans  &trans  &trans  &trans  &trans    &trans  &trans  &trans  &trans  &trans  &trans
-                        &trans  &trans  &trans    &trans  &trans  &trans
+         &kp STAR  &kp N1  &kp N2  &kp N3   &kp PLUS       ______  ______    ______     ______    ______
+         &kp FSLH  &kp N4  &kp N5  &kp N6   &kp MINUS      ______  &kp RGUI  &kp RSHFT  &kp RALT  &kp RCTRL
+&kp DOT  &kp N0    &kp N7  &kp N8  &kp N9   &kp EQUAL      ______  ______    ______     ______    ______     ______
+                               ______  ______  ______      ______  ______    ______
             >;
         };
 
-        Mouse {
+        sym_layer {
+            display-name = "Sym";
             bindings = <
-        &mmv MOVE_UP  &trans  &trans  &trans  &trans    &trans  &trans  &trans  &trans  &trans
-        &trans        &trans  &trans  &trans  &trans    &trans  &trans  &trans  &trans  &trans
-&trans  &trans        &trans  &trans  &trans  &trans    &trans  &trans  &trans  &trans  &trans  &trans
-                              &trans  &trans  &trans    &trans  &trans  &trans
+        &kp STAR   &kp  AT           &kp DLLR         &kp LS(POUND)    &kp DQT           &kp EQUAL  &kp LBRC        &kp LBKT         &kp LPAR        &kp PIPE
+        &kp LCTRL  &hml LALT LA(N3)  &hml LSHFT EXCL  &hml LGUI PRCNT  &kp COLON         &kp MINUS  &hmr RGUI RBRC  &hmr RSHFT RBKT  &hmr RALT RPAR  &hmr RCTRL TILDE
+______  ______     &kp  PLUS         &kp FSLH         &kp BSLH         &kp AMPS          &kp UNDER  &kp QMARK       &kp LT           &kp GT          &kp CARET         &kp GRAVE
+                                     ______           ______           &kp SPACE         ______     ______          ______
+            >;
+        };
+
+        fun_layer {
+            display-name = "Fun";
+            bindings = <
+                &bootloader  &kp F1  &kp F2   &kp F3   &kp F4       &kp C_VOL_UP  &kp C_VOL_DN  &kp C_MUTE  ______  &kp C_POWER
+                ______       &kp F5  &kp F6   &kp F7   &kp F8       &kp C_PREV    &kp C_PP      &kp C_NEXT  ______  &kp C_AL_LOCK
+&studio_unlock  ______       &kp F9  &kp F10  &kp F11  &kp F12      &kp C_BRI_UP  &kp C_BRI_DN  ______      ______  &kp K_CANCEL   ______
+                                     ______   ______   ______       ______        ______        ______
+            >;
+        };
+
+        lh_layer {
+            display-name = "LH";
+            bindings = <
+        ______     &kp LG(W) ______     ______         ______         ______  ______  ______  ______  ______
+        &kp LCTRL  &kp LALT &kp LSHFT  &kp LGUI       ______         ______  ______  ______  ______  ______
+______  ______   &kp LG(A)  ______    ______          &kp ENTER         ______  ______  ______  ______  ______  ______
+                             &kp TAB   &qlt NUM BSPC  &kp SPACE      ______  ______  ______
             >;
         };
     };

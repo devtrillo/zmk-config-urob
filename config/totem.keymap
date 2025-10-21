@@ -1,0 +1,87 @@
+#include <behaviors.dtsi>
+#include <behaviors/num_word.dtsi>
+#include <dt-bindings/zmk/bt.h>
+#include <dt-bindings/zmk/outputs.h>
+#include <dt-bindings/zmk/keys.h>
+
+
+#define DEF 0
+#define NAV 1
+#define FN 2
+#define NUM 3
+#define SYS 4
+#define MOUSE 5
+#define COLEMAK_DH 5
+
+#define XXX &none
+#define ___ &trans
+
+#define QUICK_TAP_MS 175
+
+&sk {
+  release-after-ms = <900>;
+  quick-release;
+};
+
+&sl { // Allow sticky mods to chord across sticky layers.
+  ignore-modifiers;
+};
+
+&lt {
+  flavor = "balanced";
+  tapping-term-ms = <200>;
+  quick-tap-ms = <QUICK_TAP_MS>;
+};
+
+&caps_word {
+    continue-list = <UNDERSCORE MINUS BACKSPACE DELETE K_CANCEL LSHFT SQT CARET TILDE GRAVE>;
+
+    /delete-property/ ignore-modifiers; // Requires PR#1451 (https://github.com/zmkfirmware/zmk/pull/1451) - currently unmantained but still working
+};
+
+&num_word {
+    continue-list = <LPAR RPAR LBKT RBKT LBRC RBRC TAB DOT COMMA SEMI COLON SLASH PLUS MINUS ASTRK EQUAL BACKSPACE DEL>;
+    ignore-modifiers;
+};
+
+
+#include "combos.dtsi" // Must be sourced after HRM-combo hack.
+#include "leader.dtsi"
+#include "mouse.dtsi"
+
+
+/ {
+    behaviors {
+
+
+        shft_cw: shft_caps_word {
+            compatible = "zmk,behavior-tap-dance";
+            #binding-cells = <0>;
+            bindings = <&sk RSHFT>, <&caps_word>;
+
+            tapping-term-ms = <300>;
+        };
+    };
+
+
+    macros {
+        ll_mac: ll_mac {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&none &kp E &kp S &kp T &kp E &kp B &kp A &kp N &kp LS(A) &kp P &kp A &kp M &kp A &kp N2 &kp N0 &kp N1 &kp N7 &kp EXCL>;
+            label = "LL_MAC";
+        };
+
+        crunch_mac: crunch_mac {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&none &kp N2 &kp N5 &kp N0 &kp N1 &kp N2 &kp N5 &kp LS(E) &kp S &kp T &kp E &kp B &kp A &kp N &kp CARET>;
+            label = "CRUNCH_MAC";
+        };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+
+    };
+};
